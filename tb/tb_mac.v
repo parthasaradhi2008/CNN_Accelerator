@@ -29,7 +29,7 @@ initial begin
     $dumpvars(0, tb_mac);
 end
 always begin
-    #5 clk<=~clk;
+    #5 clk=~clk;
 end
 initial begin 
    clk=0;
@@ -38,6 +38,7 @@ initial begin
    clear=0;
    w='0;
    a='0;
+   expected = 0;
    #20
 //   EDGE CASE TESTS
    rst_n=1;
@@ -47,8 +48,11 @@ initial begin
    a=-120;
    tests=tests+1;
    @(posedge clk)
-   if (acc != 0) begin
-      $display("ERROR Test 1: Expected 0, got %d", acc);
+   #1
+   if (clear)   expected = 0;
+   else if (en) expected = expected + w*a;
+   if (acc !== expected) begin
+      $display("ERROR Test 1: Expected %0d, got %0d", expected, acc);
       errors = errors + 1;
    end
    rst_n=1; 
@@ -58,8 +62,11 @@ initial begin
    a=-128;
    tests=tests+1;
    @(posedge clk)
-   if (acc != 16384) begin
-      $display("ERROR Test 2: Expected 16384, got %d", acc);
+   #1
+   if (clear)   expected = 0;
+   else if (en) expected = expected + w*a;
+   if (acc !== expected) begin
+      $display("ERROR Test 2: Expected %0d, got %0d", expected, acc);
       errors = errors + 1;
    end
    rst_n=1;
@@ -69,8 +76,11 @@ initial begin
    a=1;
    tests=tests+1;
    @(posedge clk)
-   if (acc != 16385) begin
-      $display("ERROR Test 3: Expected 16385, got %d", acc);
+   #1
+   if (clear)   expected = 0;
+   else if (en) expected = expected + w*a;
+   if (acc !== expected) begin
+      $display("ERROR Test 3: Expected %0d, got %0d", expected, acc);
       errors = errors + 1;
    end
    rst_n=1;
@@ -80,8 +90,11 @@ initial begin
    a=127;
    tests=tests+1;
    @(posedge clk)
-   if (acc != 32514) begin
-      $display("ERROR Test 4: Expected 32514, got %d", acc);
+   #1
+   if (clear)   expected = 0;
+   else if (en) expected = expected + w*a;
+   if (acc !== expected) begin
+      $display("ERROR Test 4: Expected %0d, got %0d", expected, acc);
       errors = errors + 1;
    end
    rst_n=1; 
@@ -91,27 +104,63 @@ initial begin
    a=-128;
    tests=tests+1;
    @(posedge clk)
-   if (acc != 16258) begin
-      $display("ERROR Test 5: Expected 16258, got %d", acc);
+   #1
+   if (clear)   expected = 0;
+   else if (en) expected = expected + w*a;
+   if (acc !== expected) begin
+      $display("ERROR Test 5: Expected %0d, got %0d", expected, acc);
       errors = errors + 1;
    end
+   // test for functioning of clear
+   clear = 1; en = 1; w = 10; a = 10;
+   expected = 0;
+   tests = tests + 1;
+   @(posedge clk); #1;
+   if (acc !== expected) begin
+      $display("ERROR Explicit Clear Mid-stream: Expected %0d, got %0d", expected, acc);
+      errors = errors + 1;
+   end
+   //test for functioning of enable
+   clear = 0; en = 0; w = 50; a = 50; 
+   tests = tests + 1;
+   @(posedge clk); #1;
+   if (acc !== expected) begin
+      $display("ERROR en=0 Hold Test: Expected %0d, got %0d", expected, acc);
+      errors = errors + 1;
+   end
+   // test for functioning of asynchronous rst_n
+   en = 1; w = 5; a = 5;
+   @(posedge clk); #1;
+   expected = expected + (w * a); 
+   #3;
+   rst_n = 0;
+   expected = 0;
+   #1;
+   tests = tests + 1;
+   if (acc !== 0) begin
+      $display("ERROR Async Reset: Expected 0 immediately on rst_n=0, got %0d", acc);
+      errors = errors + 1;
+   end
+   #10;
+   rst_n = 1;
+   clear = 1;
+   @(posedge clk); #1;
 //     RANDOM 2000 CASE TESTS
-   expected =16258;
+   expected =0;
    for (i = 0; i < 2000; i = i + 1) begin
-      w=$urandom;
-      a=$urandom;
-      en=$urandom %2;
-      clear=$urandom%2;
+      w=$signed($urandom);
+      a=$signed($urandom);
+      en=($urandom %4!=0);
+      clear=($urandom %16==0);
       if (clear) expected=0;
       else if (en) expected=expected+(w*a);
       tests=tests+1;
       @(posedge clk)
       #1
-      if (acc != expected) begin
-         $display("ERROR Random Test %d: Expected %d, got %d",i,expected,acc);
+      if (acc !== expected) begin
+         $display("ERROR Random Test %0d: Expected %0d, got %0d",i,expected,acc);
          errors = errors + 1;
       end
-      en = 0;
    end
 //       PYTHON-GENERATED VECTOR TESTS
 en = 0;

@@ -10,6 +10,7 @@ def mac_dot(w, a):
 print(mac_dot([1, 2, 3], [4, 5, 6]))        # 32
 print(mac_dot([-128, -128], [-128, -128]))   # 32768
 print(mac_dot([127]*64, [127]*64))           # 1032256
+
 rng = np.random.default_rng(1)
 N = 1000
 w = rng.integers(-128, 128, N)
